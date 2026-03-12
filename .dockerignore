@@ -1,0 +1,45 @@
+# ===================================================================
+# .dockerignore - Excluir archivos innecesarios del build
+# ===================================================================
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Maven
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+src/test/
+*Test*.java
+
+# Documentation
+HELP.md
+README.md
+*.md
+
+# Build tools
+*.class
+*.jar
+*.war
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
