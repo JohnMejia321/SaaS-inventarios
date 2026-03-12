@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Venta - Sistema de Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f5f6fa; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 4px 0; border-radius: 8px; }
+        .nav-link:hover, .nav-link.active { background-color: rgba(255,255,255,0.15); color: #fff; }
+        
+        /* Estilos para el simulador de lector */
+        .lector-container {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 15px;
+            padding: 30px;
+            color: white;
+        }
+        .lector-input {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            font-size: 1.5rem;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .lector-input:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+        }
+        .lector-icon {
+            font-size: 4rem;
+            color: #00ff88;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .btn-lector {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #1a1a2e;
+            font-weight: bold;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+        }
+        .carrito-item {
+            border-left: 4px solid #00ff88;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 0 10px 10px 0;
+        }
+        .total-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-0">
+                <div class="p-3 text-center border-bottom border-secondary">
+                    <h5 class="text-white mb-0"><i class="fas fa-boxes me-2"></i>Inventario</h5>
+                    <small class="text-white-50">Sistema SaaS</small>
+                </div>
+                <nav class="nav flex-column p-2">
+                    <a class="nav-link" th:href="@{/dashboard}"><i class="fas fa-home me-2"></i> Dashboard</a>
+                    <a class="nav-link" th:href="@{/productos}"><i class="fas fa-box me-2"></i> Productos</a>
+                    <a class="nav-link" th:href="@{/productos/inventario}"><i class="fas fa-warehouse me-2"></i> Inventario</a>
+                    <a class="nav-link" th:href="@{/ventas}"><i class="fas fa-cash-register me-2"></i> Ventas</a>
+                    <a class="nav-link active" th:href="@{/ventas/nueva}"><i class="fas fa-plus-circle me-2"></i> Nueva Venta</a>
+                    <a class="nav-link" th:href="@{/categorias}"><i class="fas fa-tags me-2"></i> Categorías</a>
+                    <hr class="border-secondary">
+                    <a class="nav-link" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a>
+                </nav>
+            </div>
+
+            <!-- Contenido principal -->
+            <div class="col-md-10 p-4">
+                <h2 class="mb-4"><i class="fas fa-cash-register me-2"></i>Nueva Venta</h2>
+
+                <div class="row">
+                    <!-- Panel del Lector de Código de Barras -->
+                    <div class="col-lg-6 mb-4">
+                        <div class="lector-container">
+                            <h4 class="text-center mb-4">
+                                <i class="fas fa-barcode me-2"></i>SIMULADOR DE LECTOR DE CÓDIGO DE BARRAS/QR
+                            </h4>
+                            
+                            <div class="text-center mb-3">
+                                <i class="fas fa-qrcode lector-icon"></i>
+                            </div>
+
+                            <p class="text-center text-muted mb-3">
+                                Escanee el código de barras o QR con el lector, o ingréselo manualmente
+                            </p>
+
+                            <!-- Input del lector -->
+                            <input type="text" id="codigoLector" class="form-control lector-input mb-3" 
+                                   placeholder="ESCANEAR O DIGITAR CÓDIGO..."
+                                   onkeypress="if(event.key === 'Enter') buscarProducto()">
+
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-lector" onclick="buscarProducto()">
+                                    <i class="fas fa-search me-2"></i>BUSCAR PRODUCTO
+                                </button>
+                            </div>
+
+                            <!-- Cantidad -->
+                            <div class="mt-3">
+                                <label class="form-label">Cantidad:</label>
+                                <input type="number" id="cantidadProducto" class="form-control" value="1" min="1">
+                            </div>
+
+                            <!-- Resultado de búsqueda -->
+                            <div id="resultadoBusqueda" class="mt-3" style="display: none;">
+                                <div class="alert" id="alertaResultado"></div>
+                            </div>
+
+                            <!-- Productos recientes para click rápido -->
+                            <div class="mt-4">
+                                <h6>Productos disponibles:</h6>
+                                <div class="d-flex flex-wrap gap-2" id="productosRecientes">
+                                    <!-- Se llenará con JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Carrito de Ventas -->
+                    <div class="col-lg-6">
+                        <form th:action="@{/ventas/procesar}" method="post" id="formVenta">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Carrito de Venta</h5>
+                                </div>
+                                <div class="card-body" style="min-height: 400px;">
+                                    <!-- Items del carrito -->
+                                    <div id="carritoItems">
+                                        <p class="text-muted text-center">
+                                            <i class="fas fa-shopping-basket fa-3x"></i><br>
+                                            Escanee productos para agregar al carrito
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <!-- Total -->
+                                    <div class="total-card mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h4 class="mb-0">TOTAL:</h4>
+                                            <h2 class="mb-0" id="totalVenta">$0</h2>
+                                        </div>
+                                    </div>
+
+                                    <!-- Datos del cliente -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cliente (opcional)</label>
+                                            <input type="text" class="form-control" name="clienteNombre" placeholder="Nombre">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Documento</label>
+                                            <input type="text" class="form-control" name="clienteDocumento" placeholder="CC/NIT">
+                                        </div>
+                                    </div>
+
+                                    <!-- Método de pago -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Método de Pago</label>
+                                        <select class="form-select" name="metodoPago">
+                                            <option value="EFECTIVO">Efectivo</option>
+                                            <option value="TARJETA">Tarjeta Débito/Crédito</option>
+                                            <option value="TRANSFERENCIA">Transferencia</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Hidden input para productos -->
+                                    <input type="hidden" name="productosJson" id="productosJson">
+
+                                    <!-- Botones -->
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-success btn-lg" id="btnProcesar" disabled>
+                                            <i class="fas fa-check-circle me-2"></i>PROCESAR VENTA
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" onclick="vaciarCarrito()">
+                                            <i class="fas fa-trash me-2"></i>Vaciar Carrito
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Headers para API (autenticación manejada por sesión de Spring Security)
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json'
+            };
+        }
+
+        // Carrito de compras en memoria
+        let carrito = [];
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarProductosRecientes();
+            
+            // Enfocar el input del lector al cargar
+            document.getElementById('codigoLector').focus();
+        });
+
+        // Cargar productos para click rápido
+        function cargarProductosRecientes() {
+            fetch('/productos/buscar?q=', { headers: getHeaders(), credentials: 'same-origin' })
+                .then(response => response.json())
+                .then(productos => {
+                    const container = document.getElementById('productosRecientes');
+                    container.innerHTML = '';
+                    
+                    productos.slice(0, 8).forEach(p => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-sm btn-outline-light';
+                        btn.innerHTML = `<i class="fas fa-plus"></i> ${p.nombre.substring(0, 15)}...`;
+                        btn.onclick = () => agregarPorCodigo(p.codigoBarra);
+                        container.appendChild(btn);
+                    });
+                })
+                .catch(err => console.log('Error cargando productos:', err));
+        }
+
+        // Buscar producto (simula el lector)
+        function buscarProducto() {
+            const codigo = document.getElementById('codigoLector').value.trim();
+            const cantidad = parseInt(document.getElementById('cantidadProducto').value) || 1;
+            
+            if (!codigo) {
+                mostrarResultado(false, 'Ingrese un código de barras');
+                return;
+            }
+
+            // Llamar al endpoint de simulación del lector
+            fetch(`/ventas/simular-lector?codigo=${encodeURIComponent(codigo)}&cantidad=${cantidad}`, { headers: getHeaders(), credentials: 'same-origin' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        mostrarResultado(true, `Producto agregado: ${data.producto.nombre}`);
+                        agregarAlCarrito(data.producto, cantidad);
+                        document.getElementById('codigoLector').value = '';
+                        document.getElementById('cantidadProducto').value = '1';
+                    } else {
+                        mostrarResultado(false, data.mensaje);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    mostrarResultado(false, 'Error al buscar producto');
+                });
+        }
+
+        // Agregar por código (para los botones rápidos)
+        function agregarPorCodigo(codigo) {
+            document.getElementById('codigoLector').value = codigo;
+            buscarProducto();
+        }
+
+        // Mostrar resultado de búsqueda
+        function mostrarResultado(success, mensaje) {
+            const div = document.getElementById('resultadoBusqueda');
+            const alerta = document.getElementById('alertaResultado');
+            
+            div.style.display = 'block';
+            alerta.className = `alert ${success ? 'alert-success' : 'alert-danger'}`;
+            alerta.innerHTML = `<i class="fas fa ${success ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>${mensaje}`;
+            
+            setTimeout(() => {
+                div.style.display = 'none';
+            }, 3000);
+        }
+
+        // Agregar al carrito
+        function agregarAlCarrito(producto, cantidad) {
+            // Usar codigoBarra del servidor
+            const codigoProducto = producto.codigoBarra || producto.codigo;
+            const existente = carrito.find(item => item.codigo === codigoProducto);
+            
+            if (existente) {
+                existente.cantidad += cantidad;
+            } else {
+                carrito.push({
+                    codigo: codigoProducto,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    stock: producto.stock,
+                    cantidad: cantidad
+                });
+            }
+            
+            renderizarCarrito();
+        }
+
+        // Renderizar el carrito
+        function renderizarCarrito() {
+            const container = document.getElementById('carritoItems');
+            
+            if (carrito.length === 0) {
+                container.innerHTML = `
+                    <p class="text-muted text-center">
+                        <i class="fas fa-shopping-basket fa-3x"></i><br>
+                        Escanee productos para agregar al carrito
+                    </p>`;
+                document.getElementById('btnProcesar').disabled = true;
+                document.getElementById('productosJson').value = '';
+                document.getElementById('totalVenta').textContent = '$0';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            carrito.forEach((item, index) => {
+                const subtotal = item.precio * item.cantidad;
+                total += subtotal;
+                
+                html += `
+                    <div class="carrito-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${item.nombre}</strong><br>
+                                <small class="text-muted">Código: ${item.codigo}</small><br>
+                                <small class="text-muted">Stock disponible: ${item.stock}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">$${item.precio.toLocaleString()} x ${item.cantidad}</div>
+                                <div class="text-success fw-bold">$${subtotal.toLocaleString()}</div>
+                                <button class="btn btn-sm btn-outline-danger" onclick="eliminarDelCarrito(${index})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            container.innerHTML = html;
+            document.getElementById('totalVenta').textContent = '$' + total.toLocaleString();
+            document.getElementById('btnProcesar').disabled = false;
+            
+            // Actualizar el input hidden con los productos
+            const productosJson = carrito.map(item => `${item.codigo}:${item.cantidad}`).join(',');
+            document.getElementById('productosJson').value = productosJson;
+        }
+
+        // Eliminar del carrito
+        function eliminarDelCarrito(index) {
+            carrito.splice(index, 1);
+            renderizarCarrito();
+        }
+
+        // Vaciar carrito
+        function vaciarCarrito() {
+            if (confirm('¿Está seguro de vaciar el carrito?')) {
+                carrito = [];
+                renderizarCarrito();
+            }
+        }
+        // Función de logout
+        function logout() {
+            window.location.href = '/logout';
+        }
+    </script>
+</body>
+</html>

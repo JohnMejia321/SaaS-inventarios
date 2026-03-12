@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producto - Sistema de Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f5f6fa; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 4px 0; border-radius: 8px; }
+        .nav-link:hover, .nav-link.active { background-color: rgba(255,255,255,0.15); color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-0">
+                <div class="p-3 text-center border-bottom border-secondary">
+                    <h5 class="text-white mb-0"><i class="fas fa-boxes me-2"></i>Inventario</h5>
+                    <small class="text-white-50">Sistema SaaS</small>
+                </div>
+                <nav class="nav flex-column p-2">
+                    <a class="nav-link" th:href="@{/dashboard}"><i class="fas fa-home me-2"></i> Dashboard</a>
+                    <a class="nav-link" th:href="@{/productos}"><i class="fas fa-box me-2"></i> Productos</a>
+                    <a class="nav-link" th:href="@{/productos/inventario}"><i class="fas fa-warehouse me-2"></i> Inventario</a>
+                    <a class="nav-link" th:href="@{/ventas}"><i class="fas fa-cash-register me-2"></i> Ventas</a>
+                    <a class="nav-link" th:href="@{/ventas/nueva}"><i class="fas fa-plus-circle me-2"></i> Nueva Venta</a>
+                    <a class="nav-link" th:href="@{/categorias}"><i class="fas fa-tags me-2"></i> Categorías</a>
+                </nav>
+            </div>
+
+            <!-- Contenido principal -->
+            <div class="col-md-10 p-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0" th:text="${producto.id != null} ? 'Editar Producto' : 'Nuevo Producto'"></h4>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/productos/guardar}" th:object="${producto}" method="post">
+                            <input type="hidden" th:field="*{id}">
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nombre del Producto *</label>
+                                    <input type="text" class="form-control" th:field="*{nombre}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Categoría</label>
+                                    <select class="form-select" th:field="*{categoria.id}">
+                                        <option value="">Seleccionar categoría</option>
+                                        <option th:each="cat : ${categorias}" 
+                                                th:value="${cat.id}" 
+                                                th:text="${cat.nombre}">
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Código de Barras</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" th:field="*{codigoBarra}" 
+                                               placeholder="Escanee o ingrese el código">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="generarCodigoBarra()">
+                                            <i class="fas fa-random"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Código que se leerá con el lector de barras</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Código QR</label>
+                                    <input type="text" class="form-control" th:field="*{codigoQr}" 
+                                           placeholder="Código QR alternativo">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Precio de Venta *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" th:field="*{precio}" 
+                                               step="0.01" min="0" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Costo</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" th:field="*{costo}" 
+                                               step="0.01" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Stock Inicial</label>
+                                    <input type="number" class="form-control" th:field="*{stockActual}" min="0">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Stock Mínimo (Alerta)</label>
+                                    <input type="number" class="form-control" th:field="*{stockMinimo}" min="0">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Stock Máximo</label>
+                                    <input type="number" class="form-control" th:field="*{stockMaximo}" min="0">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Estado</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" th:field="*{estaActivo}" checked>
+                                        <label class="form-check-label">Producto activo</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Descripción</label>
+                                <textarea class="form-control" th:field="*{descripcion}" rows="3"></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <a th:href="@{/productos}" class="btn btn-secondary">Cancelar</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generarCodigoBarra() {
+            // Genera un código de barras aleatorio de 13 dígitos
+            const codigo = '0' + Math.floor(Math.random() * 9000000000000 + 1000000000000);
+            document.querySelector('input[name="codigoBarra"]').value = codigo;
+        }
+    </script>
+</body>
+</html>

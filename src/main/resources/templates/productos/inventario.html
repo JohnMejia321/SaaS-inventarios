@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario - Sistema de Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Función de logout
+        function logout() {
+            window.location.href = '/logout';
+        }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f5f6fa; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 4px 0; border-radius: 8px; }
+        .nav-link:hover, .nav-link.active { background-color: rgba(255,255,255,0.15); color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-0">
+                <div class="p-3 text-center border-bottom border-secondary">
+                    <h5 class="text-white mb-0"><i class="fas fa-boxes me-2"></i>Inventario</h5>
+                    <small class="text-white-50">Sistema SaaS</small>
+                </div>
+                <nav class="nav flex-column p-2">
+                    <a class="nav-link" th:href="@{/dashboard}"><i class="fas fa-home me-2"></i> Dashboard</a>
+                    <a class="nav-link" th:href="@{/productos}"><i class="fas fa-box me-2"></i> Productos</a>
+                    <a class="nav-link active" th:href="@{/productos/inventario}"><i class="fas fa-warehouse me-2"></i> Inventario</a>
+                    <a class="nav-link" th:href="@{/ventas}"><i class="fas fa-cash-register me-2"></i> Ventas</a>
+                    <a class="nav-link" th:href="@{/ventas/nueva}"><i class="fas fa-plus-circle me-2"></i> Nueva Venta</a>
+                    <a class="nav-link" th:href="@{/categorias}"><i class="fas fa-tags me-2"></i> Categorías</a>
+                    <hr class="border-secondary">
+                    <a class="nav-link" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a>
+                </nav>
+            </div>
+
+            <!-- Contenido principal -->
+            <div class="col-md-10 p-4">
+                <h2 class="mb-4"><i class="fas fa-warehouse me-2"></i>Control de Inventario</h2>
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Inventario Actual</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Código</th>
+                                            <th>Categoría</th>
+                                            <th>Stock Actual</th>
+                                            <th>Mín</th>
+                                            <th>Máx</th>
+                                            <th>Precio</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="producto : ${productos}">
+                                            <td th:text="${producto.nombre}"></td>
+                                            <td><code th:text="${producto.codigoBarra}"></code></td>
+                                            <td th:text="${producto.categoria?.nombre}">-</td>
+                                            <td>
+                                                <span class="fw-bold" 
+                                                      th:classappend="${producto.stockActual < producto.stockMinimo} ? 'text-warning' : ''"
+                                                      th:text="${producto.stockActual}">
+                                                </span>
+                                            </td>
+                                            <td th:text="${producto.stockMinimo}"></td>
+                                            <td th:text="${producto.stockMaximo}"></td>
+                                            <td th:text="'$' + ${#numbers.formatDecimal(producto.precio, 1, 'COMMA', 0, 'POINT')}"></td>
+                                            <td>
+                                                <span class="badge"
+                                                      th:classappend="${producto.stockActual == 0} ? 'bg-danger' : 
+                                                                      (${producto.stockActual < producto.stockMinimo} ? 'bg-warning text-dark' : 'bg-success')"
+                                                      th:text="${producto.stockActual == 0} ? 'Sin Stock' : 
+                                                              (${producto.stockActual < producto.stockMinimo} ? 'Bajo' : 'OK')">
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-success" data-bs-toggle="modal" 
+                                                        th:data-bs-target="'#agregarModal' + ${producto.id}"
+                                                        title="Agregar stock">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                                                        th:data-bs-target="'#ajustarModal' + ${producto.id}"
+                                                        title="Ajustar stock">
+                                                    <i class="fas fa-sliders-h"></i>
+                                                </button>
+
+                                                <!-- Modal Agregar Stock -->
+                                                <div class="modal fade" th:id="'agregarModal' + ${producto.id}" tabindex="-1">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <form th:action="@{/productos/agregar-stock}" method="post">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">Agregar Stock</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <p><strong>Producto:</strong> <span th:text="${producto.nombre}"></span></p>
+                                                                    <p><strong>Stock actual:</strong> <span th:text="${producto.stockActual}"></span></p>
+                                                                    <input type="hidden" name="productoId" th:value="${producto.id}">
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Cantidad a agregar</label>
+                                                                        <input type="number" class="form-control" name="cantidad" min="1" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Costo unitario</label>
+                                                                        <input type="number" class="form-control" name="precioUnitario" step="0.01" min="0">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Observaciones</label>
+                                                                        <input type="text" class="form-control" name="observaciones">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                                    <button type="submit" class="btn btn-success">Agregar</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Modal Ajustar Stock -->
+                                                <div class="modal fade" th:id="'ajustarModal' + ${producto.id}" tabindex="-1">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <form th:action="@{/productos/ajustar-stock}" method="post">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">Ajustar Stock</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <p><strong>Producto:</strong> <span th:text="${producto.nombre}"></span></p>
+                                                                    <p><strong>Stock actual:</strong> <span th:text="${producto.stockActual}"></span></p>
+                                                                    <input type="hidden" name="productoId" th:value="${producto.id}">
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Nuevo stock</label>
+                                                                        <input type="number" class="form-control" name="nuevaCantidad" min="0" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Motivo del ajuste</label>
+                                                                        <input type="text" class="form-control" name="observaciones" placeholder="Ej: Inventario físico">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                                    <button type="submit" class="btn btn-warning">Ajustar</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
